@@ -76,13 +76,13 @@ def compareDb(db1, db2, ignore = None):
     for bu1 in db1._BUs._list:
         bu2 = db2.boardUnitByName(bu1._name)
         if bu2 is None:
-            result.addChild(compareResult("deleted", "ecu", bu1))
+            result.addChild(compareResult("deleted", "ECU", bu1))
         else:
             result.addChild(compareBu(bu1, bu2, ignore))
     for bu2 in db2._BUs._list:
         bu1 = db1.boardUnitByName(bu2._name)
         if bu1 is None:
-            result.addChild(compareResult("added", "ecu", bu2))
+            result.addChild(compareResult("added", "ECU", bu2))
 
 
 
@@ -198,6 +198,9 @@ def compareBu(bu1, bu2, ignore=None):
 def compareFrame(f1, f2, ignore= None):
     result = compareResult("equal", "FRAME", f1)
 
+    if f1._name == "VECTOR__INDEPENDENT_SIG_MSG" or f2._name == "VECTOR__INDEPENDENT_SIG_MSG":
+        return result
+
     for s1 in f1._signals:
         s2 = f2.signalByName(s1._name)
         if not s2:
@@ -228,12 +231,12 @@ def compareFrame(f1, f2, ignore= None):
     else:
         result.addChild(compareAttributes(f1, f2, ignore))
 
-    for transmitter in f1._Transmitter:
-        if transmitter not in f2._Transmitter:
-            result.addChild(compareResult("removed", "Frame-Transmitter", f1))
-    for transmitter in f2._Transmitter:
-        if transmitter not in f1._Transmitter:
-            result.addChild(compareResult("added", "Frame-Transmitter", f2))
+    # for transmitter in f1._Transmitter:
+    #     if transmitter not in f2._Transmitter:
+    #         result.addChild(compareResult("removed", "Frame-Transmitter", f1))
+    # for transmitter in f2._Transmitter:
+    #     if transmitter not in f1._Transmitter:
+    #         result.addChild(compareResult("added", "Frame-Transmitter", f2))
 
     for sg1 in f1._SignalGroups:
         sg2 = f2.signalGroupbyName(sg1._name)
@@ -245,6 +248,7 @@ def compareFrame(f1, f2, ignore= None):
     for sg2 in f2._SignalGroups:
         if f1.signalGroupbyName(sg2._name) is None:
             result.addChild(compareResult("added", "Signalgroup", sg1))
+
     return result
 
 def compareSignal(s1,s2, ignore = None):
@@ -277,13 +281,13 @@ def compareSignal(s1,s2, ignore = None):
             result.addChild(compareResult("changed", "comment", s1, ["only whitespaces differ", ""]))
 
 
-    for receiver in s1._receiver:
-        if receiver not in s2._receiver:
-            result.addChild(compareResult("removed", "receiver " + receiver, s1._receiver))
+    # for receiver in s1._receiver:
+    #     if receiver not in s2._receiver:
+    #         result.addChild(compareResult("removed", "receiver " + receiver, s1._receiver))
 
-    for receiver in s2._receiver:
-        if receiver not in s1._receiver:
-            result.addChild(compareResult("added", "receiver " + receiver, s1._receiver))
+    # for receiver in s2._receiver:
+    #     if receiver not in s1._receiver:
+    #         result.addChild(compareResult("added", "receiver " + receiver, s1._receiver))
 
     if ignore is not None and "ATTRIBUTE" in ignore and ignore["ATTRIBUTE"] == "*":
         pass
@@ -311,13 +315,33 @@ def dumpResult(res, depth = 0):
     for child in res._children:
         dumpResult(child, depth+1)
 
+def saveResult(res, depth = 0):
+    buf = ""
+    if res._type is not None and res._result != "equal":
+        for _ in range(0,depth):
+            buf += "    "
+        buf += res._type + " " + res._result + " "
+        if  hasattr(res._ref, '_name'):
+            buf += res._ref._name + "\n"
+        else:
+            buf += "    \n"
+        if  res._changes is not None and res._changes[0] is not None and res._changes[1] is not None:
+            for _ in range(0,depth):
+                buf += "    "
+            buf += "old: " + str(res._changes[0].encode('ascii','replace')) + " new: " + str(res._changes[1].encode('ascii','replace')) + "\n"
+
+    for child in res._children:
+        buf += saveResult(child, depth+1)
+
+    return buf
+
 def main():
-    
+
     from optparse import OptionParser
 
     usage = """
     %prog [options] cancompare matrix1 matrix2
-    
+
     matrixX can be any of *.dbc|*.dbf|*.kcd|*.arxml
     """
 
@@ -338,10 +362,10 @@ def main():
         # Only print ERROR messages (ignore import warnings)
         verbosity = -1
     set_log_level(logger, verbosity)
-   
+
     # import only after setting log level, to also disable warning messages in silent mode.
     import canmatrix.importany as im
-    
+
     logger.info("Importing " + matrix1 + " ... ")
     db1 = next(iter(im.importany(matrix1).values()))
     logger.info("%d Frames found" % (db1._fl._list.__len__()))
