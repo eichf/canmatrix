@@ -311,6 +311,8 @@ def dumpResult(res, depth = 0):
         if  res._changes is not None and res._changes[0] is not None and res._changes[1] is not None:
             for _ in range(0,depth):
                 print(" ", end=' ')
+            res._changes[0] = str(res._changes[0]) if type(res._changes[0]) is float else res._changes[0]
+            res._changes[1] = str(res._changes[1]) if type(res._changes[1]) is float else res._changes[1]
             print("old: " + str(res._changes[0].encode('ascii','replace')) + " new: " + str(res._changes[1].encode('ascii','replace')))
     for child in res._children:
         dumpResult(child, depth+1)
@@ -328,6 +330,8 @@ def saveResult(res, depth = 0):
         if  res._changes is not None and res._changes[0] is not None and res._changes[1] is not None:
             for _ in range(0,depth):
                 buf += "    "
+            res._changes[0] = str(res._changes[0]) if type(res._changes[0]) is float else res._changes[0]
+            res._changes[1] = str(res._changes[1]) if type(res._changes[1]) is float else res._changes[1]
             buf += "old: " + str(res._changes[0].encode('ascii','replace')) + " new: " + str(res._changes[1].encode('ascii','replace')) + "\n"
 
     for child in res._children:
